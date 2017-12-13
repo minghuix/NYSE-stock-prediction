@@ -5,6 +5,12 @@ library(XML)
 library(bitops)
 library(RCurl)
 library(MASS)
+library(e1071)
+library(mlbench)
+library(caret)
+library(missForest)
+library(mice)
+
 
 #### Test if url exists
 ## ABCD
@@ -251,8 +257,10 @@ test_final_2$group<-ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=1.5
                                                 ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=0.4,5,
                                                        ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=0.2,6,7 ))))))
 write.csv(test_final_2, "C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\stock_clean_v3.csv")
-## Modeling
-# Classification
+
+## ======= Modeling ======= ##
+
+##imputing missing value
 data1<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\stock_clean_v3.csv",header = TRUE,sep = ",")
 na_count <-sapply(data1, function(y) sum(length(which(is.na(y)))))
 na_count<- data.frame(na_count)
@@ -260,27 +268,29 @@ na_count$na_count<-na_count$na_count/2337
 data2<-data1[,-c(12,16,35,7,17,18,55)]
 
 
-# for (i in 2:63){
-#   data1[is.na(data1[,i]),i] <- mean(data1[,i], na.rm=TRUE,trim = 0.1)
-# }
-##imputing missing value
 #missForest
 # install.packages("missForest")
  library(missForest)
 data2.imp <- missForest(data2[,2:57])
 ?missForest
-head(data1.imp$ximp)
-head(data1.imp$OOBerror)
-
+head(data2.imp$ximp)
+head(data2.imp$OOBerror)
+data3<-data.frame(cbind(as.character(data1$V1),data2.imp$ximp))
 # install.packages("Hmisc")
 # library(Hmisc)
 # ?aregImpute
 
-
+#### MICE ####
 install.packages("mice")
 library(mice)
+data2_mice<- mice(data2[,2:56], m=5, maxit = 50, method = 'pmm', seed = 500)
+summary(imputed_Data)
 
-data3<-data.frame(cbind(as.character(data1$V1),data1.imp$ximp))
+data2_mice_complete <- complete(data2_mice,3)
+data2_mice_complete<-data.frame(cbind(as.character(data1$V1),data2_mice_complete,data1$group))
+colnames(data2_mice_complete)[1]<-"stock"
+colnames(data2_mice_complete)[57]<-"group"
+
 
 #Feature selection
 # Calculate correlation
@@ -290,21 +300,21 @@ install.packages("caret")
 library(mlbench)
 library(caret)
 # calculate correlation matrix
-correlationMatrix <- cor(data3[,2:56])
+correlationMatrix <- cor(data2_mice_complete[,2:56])
 # find attributes that are highly corrected (ideally >0.70)
-highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.70)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.60)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
-data3<-data3[,-c(48 ,37,22, 54 ,53, 52 ,47 ,16, 29, 17 ,28 , 2 ,18, 14)]
+data2_mice_complete<-data2_mice_complete[,-c(48, 37, 22 ,54, 55 ,16 ,52 ,17, 51  ,2, 28, 47, 29,  1 ,18 ,13)]
 
 ### LDA ###
 #training set
 set.seed(16)
-data_tr<-data3[sample(nrow(data3),1000),]
+data_tr<-data2_mice_complete[sample(nrow(data2_mice_complete),1000),]
 #fit model
-fit <- lda(group~., data=data_tr[,2:43])
+fit <- lda(group~., data=data_tr[,2:41])
 # make predictions
-predictions <- predict(fit, data3[,2:43])$class
+predictions <- predict(fit, data2_mice_complete[,2:41])$class
 comparison<-data.frame(cbind(as.character(data1$V1),data1$group,predictions))
 comparison$improve<-as.numeric(as.character(comparison$predictions))-as.numeric(as.character(comparison$V2))
 
