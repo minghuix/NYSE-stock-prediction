@@ -80,7 +80,7 @@ test_df5$results<-url_result5
 write.table(test_df5, "C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_test_results\\MyData5.csv", sep=",", 
             row.names=FALSE, col.names=FALSE)
 
-## UVWX
+## UVWXYZ
 stock_names6<-read.table('C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\u_z_nasdaq.txt',header = TRUE,sep = "\t",quote=NULL)
 ex_list2 <- c('-',"\\.")
 stock_clean6 <- stock_names6[!grepl(paste(ex_list2,collapse = "|"),stock_names6$Symbol),]
@@ -104,15 +104,15 @@ write.table(test_df6, "C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_
 # test_df7<-data.frame('id'= stock_id7,"url_test" = urls7)
 # url_result7<-sapply(as.character(test_df7[,2]), url.exists)
 # test_df7$results<-url_result7
-# write.table(test_df7, "C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData7.csv", sep=",", 
+# write.table(test_df7, "C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url test results\\MyData7.csv", sep=",", 
 #             row.names=FALSE, col.names=FALSE)
 
-test_df<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData1.csv",header = FALSE)
-test_df2<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData2.csv",header = FALSE)
-test_df3<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData3.csv",header = FALSE)
-test_df4<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData4.csv",header = FALSE)
-test_df5<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData5.csv",header = FALSE)
-test_df6<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData6.csv",header = FALSE)
+test_df<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_test_results\\MyData1.csv",header = FALSE)
+test_df2<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_test_results\\MyData2.csv",header = FALSE)
+test_df3<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_test_results\\MyData3.csv",header = FALSE)
+test_df4<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_test_results\\MyData4.csv",header = FALSE)
+test_df5<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_test_results\\MyData5.csv",header = FALSE)
+test_df6<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\url_test_results\\MyData6.csv",header = FALSE)
 #test_df7<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\url test results\\MyData7.csv",header = FALSE)
 
 stock_all <- rbind(test_df, test_df2, test_df3,test_df4,test_df5,test_df6)
@@ -235,6 +235,8 @@ test_final$Avg.Volume<-ifelse(test_final$avgv_flag == "FALSE",
 test_final<-test_final[,-c(1,2,11,12,36,55,56,57,70,71,73,74:79)]
 test_final<-cbind(unique(raw_data_x$stock),test_final)
 
+head(test_final)
+
 ### percentage columns to pure numbers
 ## percentage column numbers: 8,22,26-45,48,55-60
 test_final_2<-test_final
@@ -251,7 +253,7 @@ test_final_2<-data.frame(cbind(as.character(unique(raw_data_x$stock)),test_final
 test_final_2$Employees<-log(as.numeric(test_final_2$Employees))
 test_final_2$Volume<-log(as.numeric(test_final_2$Volume))
 test_final_2$group<-ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=1.5,1,
-                           ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=1,2,
+                           ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=1.2,2,
                                   ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=0.8,3,
                                          ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=0.6,4,
                                                 ifelse(as.numeric(as.character(test_final_2$Perf.Year))>=0.4,5,
@@ -264,18 +266,24 @@ write.csv(test_final_2, "C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\st
 data1<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\stock_clean_v3.csv",header = TRUE,sep = ",")
 na_count <-sapply(data1, function(y) sum(length(which(is.na(y)))))
 na_count<- data.frame(na_count)
-na_count$na_count<-na_count$na_count/2746
-data2<-data1[,-c(12,16,35,7,17,18,55)]
+na_count$na_count<-na_count$na_count/2722
+## manually selecting some of the variables that may have higher impacts 
+## due to large volume of missing data
 
+
+
+data2<-read.csv("C:\\Users\\mxiong\\Downloads\\kaggle\\stock\\NASDAQ\\stock_clean_v4.csv",header = TRUE,sep = ",")
+data2<-data2[, -which(colMeans(is.na(data2)) > 0.5)]  ## delete columns with more than 50% missing data
+data2<-data2[-which(rowMeans(is.na(data2)) > 0.5),]   ## delete rows with more than 50% missing data
 
 #missForest
 # install.packages("missForest")
- library(missForest)
-data2.imp <- missForest(data2[,2:57])
-?missForest
-head(data2.imp$ximp)
-head(data2.imp$OOBerror)
-data3<-data.frame(cbind(as.character(data1$V1),data2.imp$ximp))
+# library(missForest)
+#data2.imp <- missForest(data2[,2:57])
+#?missForest
+#head(data2.imp$ximp)
+#head(data2.imp$OOBerror)
+#data3<-data.frame(cbind(as.character(data1$V1),data2.imp$ximp))
 # install.packages("Hmisc")
 # library(Hmisc)
 # ?aregImpute
@@ -285,10 +293,10 @@ install.packages("mice")
 library(mice)
 data2_mice_new<- mice(data2[,2:56], m=5, maxit = 50, method = 'pmm', seed = 500)
 data2_mice_complete_new <- complete(data2_mice_new,3)
-data2_mice_complete_new<-data.frame(cbind(as.character(data1$V1),data2_mice_complete_new,data1$group))
+data2_mice_complete_new<-data.frame(cbind(as.character(data2$V1),data2_mice_complete_new,data2$group))
 colnames(data2_mice_complete_new)[1]<-"stock"
 colnames(data2_mice_complete_new)[57]<-"group"
-data2_mice_complete_new<-data2_mice_complete_new[,-17] ## drop EPS.next.Y
+# data2_mice_complete_new
 
 
 #Feature selection
@@ -299,7 +307,7 @@ install.packages("caret")
 library(mlbench)
 library(caret)
 # calculate correlation matrix
-correlationMatrix <- cor(data2_mice_complete_new[,2:55])
+correlationMatrix <- cor(data2_mice_complete_new[,2:56])
 # find attributes that are highly corrected (ideally >0.70)
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.60)
 # print indexes of highly correlated attributes
@@ -355,3 +363,29 @@ comparison.svm$improve<-as.numeric(as.character(comparison.svm$res))-as.numeric(
 
 ### Multinomial logistic regression ###
 
+##############################
+## PCA for dimension deduction
+##############################
+data_pca <- data2_mice_complete_new[,-c(1,57)] # delete stock id and group
+pca_result <- prcomp(data_pca, scale. = T)
+std_dev <- pca_result$sdev # standard deviation
+# compute variance
+pr_var <- std_dev^2
+# proportion of variance explained
+prop_var_ex<-pr_var/sum(pr_var)
+
+#cumulative scree plot
+plot(cumsum(prop_var_ex), xlab = "Principal Component",
+       ylab = "Cumulative Proportion of Variance Explained",
+       type = "b")
+abline(a = 0.9,b=0) # 32 pc selected
+
+data_post_pca <- data.frame(data2_mice_complete_new[,1],pca_result$x[,1:32],data2_mice_complete_new[,57])
+colnames(data_post_pca)[1]<-"stock"
+colnames(data_post_pca)[34]<-"group"
+
+### LDA ###
+# cross-validation
+fit_cv_pca <- lda(group~., data=data_post_pca[,2:34],CV = TRUE)
+comparison_lda_cv_pca<-data.frame(cbind(as.character(data2_mice_complete_new$stock),data2_mice_complete_new$group,as.character(fit_cv_pca$class)))
+comparison_lda_cv_pca$improve<-as.numeric(as.character(comparison_lda_cv_pca$X3))-as.numeric(as.character(comparison_lda_cv_pca$X2))
